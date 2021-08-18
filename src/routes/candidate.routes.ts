@@ -1,45 +1,20 @@
-import {Router} from 'express';
-import { getCustomRepository } from 'typeorm';
+import { Router } from "express";
+import { AuthenticateUserController } from "./controllers/AuthenticateUserController";
+import { UserController } from "./controllers/UserController";
+import { ensureSuper } from "./middlewares/ensureSuper";
+import { ensureAuthenticated } from "./middlewares/ensureAuthenticated";
 
-import CandidateRepository from '../app/repositories/CandidateRepository';
-import CreateCandidateService from '../app/services/candidate/CreateCandidateService';
+const router = Router();
 
-const candidateRouter = Router();
+const userController = new UserController();
+const authenticateUserController = new AuthenticateUserController();
 
-candidateRouter.get('/', async (request, response) => {
+router.post('/users', ensureAuthenticated, ensureSuper, userController.create);
+router.get('/users', ensureAuthenticated, userController.ready);
+router.get('/users/:id', ensureAuthenticated, userController.readyById);
+router.put('/users/:id', ensureAuthenticated, ensureSuper, userController.update);
+router.delete('/users/:id', ensureAuthenticated, ensureSuper, userController.delete);
 
-  const candidateRepository = getCustomRepository(CandidateRepository);
-  const candidate = await candidateRepository.find();
+router.post('/login', authenticateUserController.handle);
 
-  return response.json(candidate);
-});
-
-candidateRouter.post('/', async (request, response) => {
-  try {
-    const {
-      name,
-      email,
-      phone,
-      cpf,
-      city,
-      profile_photo,
-    } = request.body;
-
-    const CreateCandidate = new CreateCandidateService();
-
-    const candidate = await CreateCandidate.execute({
-      name,
-      email,
-      phone,
-      cpf,
-      city,
-      profile_photo
-    });
-
-    return response.json(candidate);
-  } catch (err) {
-    return response.status(400).json({ error: err.message });
-  }
-});
-
-export default candidateRouter;
+export default router
